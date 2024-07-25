@@ -3,8 +3,8 @@ import { Common, Logger } from "./helpers";
 import { DebrickedCommand } from "./commands";
 import { DebrickedCommandsTreeDataProvider } from "./providers";
 import { MessageStatus, Organization } from "./constants/index";
-import { BaseCommandService } from "services";
-import { GlobalState } from "helpers/globalState";
+import { BaseCommandService } from "./services";
+import { GlobalState } from "./helpers/globalState";
 
 export async function activate(context: vscode.ExtensionContext) {
     await vscode.window.withProgress(

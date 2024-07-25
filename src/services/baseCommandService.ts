@@ -2,7 +2,7 @@ import { DebrickedCommandNode } from "../types";
 import { DebrickedCommands, Messages, MessageStatus, Organization } from "../constants/index";
 import { StatusBarMessageHelper, Terminal, StatusMessage, Logger, QuickPick, InstallHelper, Common } from "../helpers";
 import * as vscode from "vscode";
-import { GlobalState } from "helpers/globalState";
+import { GlobalState } from "../helpers/globalState";
 
 export class BaseCommandService {
     private static get globalState(): GlobalState {
