@@ -43,7 +43,7 @@ describe("Extension: Test Suite", () => {
             sandbox.restore();
         });
 
-        it.only("Should activate the extension", async () => {
+        it("Should activate the extension", async () => {
             await activateSpy(context);
 
             expect(commandsSpy.calledOnce).to.be.true;
