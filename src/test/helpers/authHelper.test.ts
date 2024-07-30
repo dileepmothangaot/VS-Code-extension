@@ -1,76 +1,71 @@
-import { Messages, Organization } from "../../constants/index";
-import { expect, sinon, mockWorkspacePath } from "../setup";
+import * as vscode from "vscode";
 import proxyquire from "proxyquire";
 import path from "path";
-import fs from "fs";
+import { expect, sinon } from "../setup";
+import { GlobalState, DebrickedDataHelper } from "../../helpers";
+import { Messages } from "../../constants";
 
-describe("AuthHelper", () => {
-    let AuthHelper: any;
-    let fsStub: any;
-    let vscodeStub: any;
-    let originalWorkspace: string;
+describe("AuthHelper: Test Suite", () => {
+    describe("AuthHelper.getAccessToken method", () => {
+        let AuthHelper: any;
+        let sandbox: sinon.SinonSandbox;
+        let globalStateGetInstanceStub: sinon.SinonStub;
+        let showInputBoxStub: sinon.SinonStub;
 
-    beforeEach(() => {
-        // Create a mock workspace in the current directory
-        if (!fs.existsSync(mockWorkspacePath)) {
-            fs.mkdirSync(mockWorkspacePath);
-        }
-
-        fsStub = {
-            existsSync: sinon.stub(),
-            mkdirSync: sinon.stub(),
-            readFileSync: sinon.stub(),
-            writeFileSync: sinon.stub(),
-        };
-
-        vscodeStub = {
-            window: {
-                showInputBox: sinon.stub(),
-            },
-            workspace: {
-                workspaceFolders: [
-                    {
-                        uri: {
-                            fsPath: mockWorkspacePath,
-                        },
-                    },
-                ],
-            },
-        };
-
-        originalWorkspace = Organization.workspace;
-        Object.defineProperty(Organization, "workspace", {
-            value: mockWorkspacePath,
-            writable: true,
+        beforeEach(() => {
+            sandbox = sinon.createSandbox();
+            sandbox.spy(GlobalState, "initialize");
+            sandbox.spy(path, "join");
+            sandbox.spy(DebrickedDataHelper, "createDir");
+            showInputBoxStub = sandbox.stub(vscode.window, "showInputBox");
+            globalStateGetInstanceStub = sandbox.stub(GlobalState, "getInstance");
+            AuthHelper = proxyquire("../../helpers", {
+                path: path,
+            }).AuthHelper;
         });
 
-        AuthHelper = proxyquire("../../helpers", {
-            fs: fsStub,
-            vscode: vscodeStub,
-            path: path,
-        }).AuthHelper;
-    });
-
-    afterEach(() => {
-        sinon.restore();
-        Object.defineProperty(Organization, "workspace", {
-            value: originalWorkspace,
-            writable: false,
+        afterEach(() => {
+            sandbox.restore();
         });
-        // Clean up the mock workspace
-        if (fs.existsSync(mockWorkspacePath)) {
-            fs.rmdirSync(mockWorkspacePath, { recursive: true });
-        }
-    });
 
-    describe("getAccessToken", () => {
-        it("should throw an error if workspace is not defined", async () => {
-            Object.defineProperty(Organization, "workspace", {
-                value: "",
-                writable: true,
+        it("Should generate access token if no saved access token present", async () => {
+            showInputBoxStub.returns("sampleToken");
+            globalStateGetInstanceStub.returns({
+                clearAllGlobalData: sinon.spy(),
+                setGlobalData: sinon.spy(),
+                getGlobalData: sinon.stub().returns({ accessToken: "" }),
+                getGlobalDataByKey: sinon.spy(),
+                setGlobalDataByKey: sinon.spy(),
+            });
+            const accessToken = await AuthHelper.getAccessToken();
+            expect(accessToken).to.be.a("string");
+        });
+
+        it("should throw an error if no saved access token present and failed to generate access token", async () => {
+            showInputBoxStub.returns(undefined);
+            globalStateGetInstanceStub.returns({
+                clearAllGlobalData: sinon.spy(),
+                setGlobalData: sinon.spy(),
+                getGlobalData: sinon.stub().returns({ accessToken: "" }),
+                getGlobalDataByKey: sinon.spy(),
+                setGlobalDataByKey: sinon.spy(),
             });
 
-            await expect(AuthHelper.getAccessToken()).to.be.rejectedWith(Messages.WS_NOT_FOUND);
+            await expect(AuthHelper.getAccessToken()).to.be.rejectedWith(Messages.ACCESS_TOKEN_RQD);
+        });
+
+        it("Should return the saved access token if saved access token present in global data", async () => {
+            const savedToken = "sampleToken";
+            showInputBoxStub.returns(savedToken);
+            globalStateGetInstanceStub.returns({
+                clearAllGlobalData: sinon.spy(),
+                setGlobalData: sinon.spy(),
+                getGlobalData: sinon.stub().returns({ accessToken: savedToken }),
+                getGlobalDataByKey: sinon.spy(),
+                setGlobalDataByKey: sinon.spy(),
+            });
+            const accessToken = await AuthHelper.getAccessToken();
+            expect(accessToken).to.eq(savedToken);
         });
     });
 });
